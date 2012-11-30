@@ -3,7 +3,7 @@ package fileServer;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
-import java.util.Scanner;
+//import java.util.Scanner;
 
 
 public class RunSystem {
@@ -37,11 +37,11 @@ public class RunSystem {
 			client.runClient();
 						
 			//To allow unbinding:
-			Scanner sc = new Scanner(System.in);
-			String x = "";
-			while(!x.equals("exit")){
-				x = sc.next();
-			}			
+//			Scanner sc = new Scanner(System.in);
+//			String x = "";
+//			while(!x.equals("exit")){
+//				x = sc.next();
+//			}			
 			registry.unbind("FileServer");
 			System.out.println("File Server unbound from registry");
 			registry.unbind("DirectoryServer");

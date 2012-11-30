@@ -1,18 +1,7 @@
 package fileServer;
 
-import java.rmi.registry.LocateRegistry;
-import java.rmi.registry.Registry;
-import java.rmi.server.UnicastRemoteObject;
-
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-//import java.io.FileOutputStream;
-import java.io.IOException;
-
 import java.util.ArrayList;
-import java.util.Scanner;
-
 
 public class FileServer implements FServerRMI{
 	
@@ -39,27 +28,14 @@ public class FileServer implements FServerRMI{
 	
 	public byte[] retrieveFile(String filepath){
 		
-		//Check if file exists:
-		File fileToRetrieve = new File(filepath);
-		if(!fileToRetrieve.exists()){
-			System.out.println("File not found.");
-			return null;
-		}		
-		//Otherwise attempt to open:
 		try{
-			//Open file and read into byte array fileByteArray[], return
-			FileInputStream fileStream = new FileInputStream(fileToRetrieve);
-			byte fileByteArray[] = new byte[(int)fileToRetrieve.length()];			
-			fileStream.read(fileByteArray);
-			
-			return fileByteArray;
+			return Utils.getUtils().serialiseFile(filepath);		
 		}
-		catch(FileNotFoundException e){
+		catch(Exception e){
+			System.err.println("Error serialising file " + e.toString());
+			e.printStackTrace();
 			return null;
 		}
-		catch(IOException e){
-			return null;
-		}		
 	}
 	
 	public void writeNewFile(byte[] newFile, String filename){
@@ -73,39 +49,5 @@ public class FileServer implements FServerRMI{
 			e.printStackTrace();
 			
 		}
-	}
-	
-	//MAIN:
-	public static void main(String args[]){
-		
-		try{
-			
-			//Set the code base so rmi can see the class (classpath)
-			System.setProperty("java.rmi.server.codebase", FServerRMI.class.getProtectionDomain().getCodeSource().getLocation().toString());
-			
-			FileServer obj = new FileServer();
-			FServerRMI stub = (FServerRMI) UnicastRemoteObject.exportObject(obj, 0);
-			
-			//Bind the remote object's stub in the registry
-			Registry registry = LocateRegistry.getRegistry();
-			registry.bind("FileServer", stub);
-			
-			System.err.println("File Server ready");
-			
-			//To allow unbinding:
-			Scanner sc = new Scanner(System.in);
-			String x = "";
-			while(!x.equals("exit")){
-				x = sc.next();
-			}
-			registry.unbind("FileServer");
-			System.out.println("File Server unbound from registry");
-			
-		} catch(Exception e){
-			System.err.println("File Server exception: " + e.toString());
-			e.printStackTrace();
-		}
-		
-		
 	}
 }
