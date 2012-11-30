@@ -1,50 +1,55 @@
 package fileServer;
 
+import java.rmi.registry.LocateRegistry;
+import java.rmi.registry.Registry;
+import java.rmi.server.UnicastRemoteObject;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 
-import java.rmi.registry.LocateRegistry;
-import java.rmi.registry.Registry;
-import java.rmi.server.UnicastRemoteObject;
 import java.util.ArrayList;
+import java.util.Scanner;
 
 
 public class FileServer implements FServerRMI{
 	
+	private String homeDir = "C:/Users/Tom/Downloads/Testing/javaTest"; 
+	
 	public FileServer(){}
 	
 	public String[] getFileList(){
-		File dir = new File("C:/Users/Tom/Downloads/Testing/javaTest");
+		File dir = new File(homeDir);
 		
 		File listDir[] = dir.listFiles();
 		
 		ArrayList<String> listOfFiles = new ArrayList<String>();
 		
 		for(int i=0; i<listDir.length; i++){
-			if(listDir[i].isFile()) listOfFiles.add(listDir[i].getName());
+			if(listDir[i].isFile()) listOfFiles.add(listDir[i].getAbsolutePath());
 		}
 		
 		String fileList[] = new String[listOfFiles.size()];
 		listOfFiles.toArray(fileList);
 		
 		return fileList;
-		
-		//Object[] objList = listOfFiles.toArray();
-		
-		//return Arrays.asList(objList).toArray(new String[objList.length]);
 	}
 	
-	public byte[] retrieveFile(String filename){
-		String filepath = "C:/Users/Tom/Downloads/Testing/javaTest" + "/" + filename;
-		File fileToRetrieve = new File(filepath);
+	public byte[] retrieveFile(String filepath){
 		
+		//Check if file exists:
+		File fileToRetrieve = new File(filepath);
+		if(!fileToRetrieve.exists()){
+			System.out.println("File not found.");
+			return null;
+		}
+		
+		//Otherwise attempt to open:
 		try{
+			//Open file and read into byte array fileByteArray[], return
 			FileInputStream fileStream = new FileInputStream(fileToRetrieve);
-			
-			byte fileByteArray[] = new byte[(int)fileToRetrieve.length()];
-			
+			byte fileByteArray[] = new byte[(int)fileToRetrieve.length()];			
 			fileStream.read(fileByteArray);
 			
 			return fileByteArray;
@@ -78,9 +83,20 @@ public class FileServer implements FServerRMI{
 			
 			System.err.println("File Server ready");
 			
+			//To allow unbinding:
+			Scanner sc = new Scanner(System.in);
+			String x = "";
+			while(!x.equals("exit")){
+				x = sc.next();
+			}
+			registry.unbind("FileServer");
+			System.out.println("File Server unbound from registry");
+			
 		} catch(Exception e){
-			System.err.println("Server exception: " + e.toString());
+			System.err.println("File Server exception: " + e.toString());
 			e.printStackTrace();
 		}
+		
+		
 	}
 }
