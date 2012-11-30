@@ -7,6 +7,7 @@ import java.rmi.server.UnicastRemoteObject;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+//import java.io.FileOutputStream;
 import java.io.IOException;
 
 import java.util.ArrayList;
@@ -43,8 +44,7 @@ public class FileServer implements FServerRMI{
 		if(!fileToRetrieve.exists()){
 			System.out.println("File not found.");
 			return null;
-		}
-		
+		}		
 		//Otherwise attempt to open:
 		try{
 			//Open file and read into byte array fileByteArray[], return
@@ -63,7 +63,16 @@ public class FileServer implements FServerRMI{
 	}
 	
 	public void writeNewFile(byte[] newFile, String filename){
-		//Write newFile into new file filename
+		//Write newFile into new file 'filename'
+		String filepath = homeDir + "/" + filename;
+		try{
+			Utils.getUtils().deSerialiseFile(newFile, filepath);
+		}
+		catch(Exception e){
+			System.err.println("Could not write " + filename + "to file server" + e.toString());
+			e.printStackTrace();
+			
+		}
 	}
 	
 	//MAIN:

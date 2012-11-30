@@ -11,7 +11,7 @@ import java.util.Scanner;
 
 public class Client {
 	
-	String workingDir = "C:/Users/Tom/Downloads";
+	String workingDir = "C:/Users/Tom/Downloads/Testing/javaTest_CLIENT_COPIES";
 	
 	public Client(){}
 	
