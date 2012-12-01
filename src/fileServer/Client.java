@@ -1,5 +1,6 @@
 package fileServer;
 
+//import java.rmi.RMISecurityManager;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 
@@ -9,6 +10,7 @@ import java.util.Scanner;
 public class Client {
 	
 	String workingDir = "C:/Users/Tom/Downloads/Testing/javaTest_CLIENT_COPIES";
+	String clientName = null;
 	
 	public Client(){}
 	
@@ -16,6 +18,8 @@ public class Client {
 		Scanner scanner = new Scanner(System.in);
 		
 		try{
+			//System.setSecurityManager(new RMISecurityManager());
+			
 			//Getting RMI registry
 			Registry registry = LocateRegistry.getRegistry(null);
 			
@@ -23,6 +27,20 @@ public class Client {
 		    DServerRMI DServerStub = (DServerRMI) registry.lookup("DirectoryServer");		    
 		    //Get stub for File Server
 		    FServerRMI FServerStub = (FServerRMI) registry.lookup("FileServer");
+		    
+		    //Get client's name
+			while(clientName == null){
+				System.out.print("Enter username: ");
+			    String cName = scanner.next();
+//			    if(lockServer.nameTaken()){
+//			    	System.out.println("Name taken, try again.");
+//			    }
+//			    else{
+			    	clientName = cName;
+			    	System.out.println("Name set. Hello " + clientName);
+//			    }
+			    
+			}
 		    
 		    //Getting list of files from directory server
 		    String[] fileList = DServerStub.getFileList();

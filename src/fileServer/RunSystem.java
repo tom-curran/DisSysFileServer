@@ -22,14 +22,14 @@ public class RunSystem {
 			FileServer FServerObj = new FileServer();
 			FServerRMI FServerStub = (FServerRMI) UnicastRemoteObject.exportObject(FServerObj, 0);
 			//Bind to RMI registry
-			registry.bind("FileServer", FServerStub);
+			registry.rebind("FileServer", FServerStub);
 			System.out.println("File Server ready");
 			
 			//Initialise Directory Server
 			DirectoryServer DServerObj = new DirectoryServer();
 			DServerRMI DServerStub = (DServerRMI) UnicastRemoteObject.exportObject(DServerObj, 0);
 			//Bind to RMI registry			
-			registry.bind("DirectoryServer", DServerStub);
+			registry.rebind("DirectoryServer", DServerStub);
 			System.out.println("Directory Server ready");
 			
 			//Run test client
