@@ -44,7 +44,7 @@ public class Utils {
 		//Check if file already exists in this path, if yes, rename existing file (append '_old')
 		File testExists = new File(filepath);
 		if(testExists.exists()){
-			System.err.println("File already exists with this name, renaming old file.");
+			System.out.println("File already exists with this name, renaming old file.");
 			File renamedFile = new File(filepath + "_old");
 			testExists.renameTo(renamedFile);
 		}

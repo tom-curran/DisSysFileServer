@@ -46,8 +46,8 @@ public class LockServer implements LServerRMI{
 	}
 	//Drop existing lock on file 'filepath' held by 'clientName'
 	public boolean dropLock(String filepath, String clientName){
-		//Lock not held, return false
-		if(!lockMap.containsKey(filepath)) return false;
+		
+		if(!lockMap.containsKey(filepath)) return false;	//Lock not held
 		
 		//Check if client is the lock holder, drop lock if they are
 		String lockHolder = lockMap.get(filepath);
@@ -55,6 +55,16 @@ public class LockServer implements LServerRMI{
 			lockMap.remove(filepath);
 			return true;
 		}
+		else return false;
+	}
+	
+	//Method for file server to check if client has lock on file to write to
+	public boolean checkLock(String filepath, String clientName){
+		
+		if(!lockMap.containsKey(filepath)) return false;	//No one has lock on this file
+		
+		String lockHolder = lockMap.get(filepath);		
+		if(clientName.equals(lockHolder)) return true;
 		else return false;
 	}
 

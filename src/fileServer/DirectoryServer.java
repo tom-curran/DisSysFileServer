@@ -11,12 +11,13 @@ public class DirectoryServer implements DServerRMI{
 	private HashMap<String, String> fileMap = new HashMap<String, String>();
 	
 	public DirectoryServer(){
+		
 		try{
 			
 			Registry registry = LocateRegistry.getRegistry(null);
-			FServerRMI stub = (FServerRMI) registry.lookup("FileServer");
+			FServerRMI FServerStub = (FServerRMI) registry.lookup("FileServer");
 			
-			String[] fileList = stub.getFileList();
+			String[] fileList = FServerStub.getFileList();
 			
 			//Build hashmap of files (name -> filepath)
 			File tempF;
