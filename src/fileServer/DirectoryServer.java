@@ -8,7 +8,7 @@ import java.rmi.registry.Registry;
 
 public class DirectoryServer implements DServerRMI{
 	
-	HashMap<String, String> fileMap = new HashMap<String, String>();
+	private HashMap<String, String> fileMap = new HashMap<String, String>();
 	
 	public DirectoryServer(){
 		try{

@@ -34,7 +34,7 @@ public class RunSystem {
 			
 			//Run test client
 			Client client = new Client();			
-			client.runClient();
+			client.runTestClient();
 						
 			//To allow unbinding:
 //			Scanner sc = new Scanner(System.in);

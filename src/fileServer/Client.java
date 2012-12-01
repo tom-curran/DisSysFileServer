@@ -9,12 +9,12 @@ import java.util.Scanner;
 
 public class Client {
 	
-	String workingDir = "C:/Users/Tom/Downloads/Testing/javaTest_CLIENT_COPIES";
-	String clientName = null;
+	private String workingDir = "C:/Users/Tom/Downloads/Testing/javaTest_CLIENT_COPIES";
+	private String clientName = null;
 	
 	public Client(){}
 	
-	public void runClient(){
+	public void runTestClient(){
 		Scanner scanner = new Scanner(System.in);
 		
 		try{
@@ -23,29 +23,31 @@ public class Client {
 			//Getting RMI registry
 			Registry registry = LocateRegistry.getRegistry(null);
 			
-			//Getting stub for Directory server:
-		    DServerRMI DServerStub = (DServerRMI) registry.lookup("DirectoryServer");		    
-		    //Get stub for File Server
+			//Get stub for File Server
 		    FServerRMI FServerStub = (FServerRMI) registry.lookup("FileServer");
+			//Getting stub for Directory server:
+		    DServerRMI DServerStub = (DServerRMI) registry.lookup("DirectoryServer");
+		    //Get stub for Lock Server
+		    LServerRMI LServerStub = (LServerRMI) registry.lookup("LockServer");
 		    
-		    //Get client's name
+		    //Get client's name, register with Lock Server
 			while(clientName == null){
 				System.out.print("Enter username: ");
 			    String cName = scanner.next();
-//			    if(lockServer.nameTaken()){
-//			    	System.out.println("Name taken, try again.");
-//			    }
-//			    else{
+			    if(!LServerStub.checkAndAddName(cName)){
+			    	System.out.println("Name taken, try again.");
+			    }
+			    else{
 			    	clientName = cName;
-			    	System.out.println("Name set. Hello " + clientName);
-//			    }
+			    	System.out.println("Name set with lock server. Hello " + clientName);
+			    }
 			    
 			}
 		    
 		    //Getting list of files from directory server
 		    String[] fileList = DServerStub.getFileList();
 		    //Print file list
-		    System.out.println("FILES:");
+		    System.out.println("\nFiles Available:");
 		    for(int i=0; i<fileList.length; i++){
 		    	System.out.println(fileList[i]);
 		    }
@@ -74,8 +76,11 @@ public class Client {
 		    }
 		    
 		    //Test new file writing to server:
-		    byte sendFile[] = Utils.getUtils().serialiseFile(workingDir + "/Silhouette.mp3");
-		    FServerStub.writeNewFile(sendFile, "silTest.mp3");
+//		    byte sendFile[] = Utils.getUtils().serialiseFile(workingDir + "/Silhouette.mp3");
+//		    FServerStub.writeNewFile(sendFile, "silTest.mp3");
+		    
+		    //Remove client name from lock server when done
+		    LServerStub.removeName(clientName);
 		    
 		    
 		} catch(Exception e){
