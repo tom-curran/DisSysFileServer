@@ -1,2 +1,13 @@
-Distributed File Server Project
-Distributed Systems- TCD
+Distributed File Server Project- DisSys- TCD
+Built in Java with RMI
+
+System:
+-File Server(s)
+-Directory Server
+-Lock Server
+-Client
+
+To do:
+-Authentication Server
+-Caching
+-Transactions
