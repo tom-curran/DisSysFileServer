@@ -49,7 +49,7 @@ public class Client {
 			    }
 			    else{
 			    	clientName = cName;
-			    	System.out.println("Name set with lock server. Hello " + clientName);
+			    	System.out.println("Name set with lock server. Hello " + clientName + "!");
 			    }			    
 			}
 		} catch(Exception e){
@@ -107,6 +107,8 @@ public class Client {
 		    	
 		    	//Retrieve file from file server:
 		    	byte[] fileBytes = FServerStub.retrieveFile(filepath);
+		    	
+		    	LServerStub.getLock(filepath, clientName);
 		    	
 		    	if(FServerStub.overwriteFile(fileBytes, filepath, clientName)){
 		    		System.out.println("File " + fileChosen + " overwritten!");
