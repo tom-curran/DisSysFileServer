@@ -10,4 +10,5 @@ public interface LServerRMI extends Remote{
 	boolean getLock(String filepath, String clientName) throws RemoteException;
 	boolean dropLock(String filepath, String clientName) throws RemoteException;
 	boolean checkLock(String filepath, String clientName) throws RemoteException;
+	
 }

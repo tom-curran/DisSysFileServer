@@ -5,6 +5,9 @@ import java.rmi.RemoteException;
 
 public interface DServerRMI extends Remote{
 	
-	String[] getFileList() throws RemoteException;
-	String getFilePath(String file) throws RemoteException;	
+	String[] getFileFolderList(String breadcrumbs) throws RemoteException;
+	String getFilePath(String breadcrumbs, String file) throws RemoteException;
+	boolean renameFile(String breadcrumbs, String currentFilename, String newFilename) throws RemoteException;
+	boolean createFolder(String breadcrumbs, String newFolderName) throws RemoteException;
+	
 }

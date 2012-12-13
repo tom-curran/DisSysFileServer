@@ -68,8 +68,9 @@ public class RunSystem {
 		
 		
 		//Run test client
-		Client client = new Client("C:/Users/Tom/Downloads/Testing/javaTest_CLIENT_COPIES");			
-		client.runTestClient();
+		Client client = new Client("C:/Users/Tom/Downloads/Testing/javaTest_CLIENT_COPIES");		
+		//client.runTestClient();
+		client.mainMenu();
 		
 		
 		try{

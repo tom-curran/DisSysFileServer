@@ -10,7 +10,9 @@ public class FileServer implements FServerRMI{
 	
 	private String homeDir = "C:/Users/Tom/Downloads/Testing/javaTest"; 
 	
-	public FileServer(){}
+	public FileServer(){
+		System.out.println("File Server Ready.");
+	}
 	
 	public String[] getFileList(){
 		File dir = new File(homeDir);
@@ -78,5 +80,41 @@ public class FileServer implements FServerRMI{
 		}		
 		
 		return true;	//Successful write, lock has been dropped
+	}
+	
+	public boolean rollbackFile(String filepath, String clientName){
+		
+		try{
+			Registry registry = LocateRegistry.getRegistry(null);
+			LServerRMI LServerStub = (LServerRMI) registry.lookup("LockServer");
+			
+			//Make sure client has lock on file
+			if(LServerStub.checkLock(filepath, clientName)){
+				//Utils.getUtils().deSerialiseFile(newFile, filepath);
+				File latestVersion = new File(filepath);
+				File lastVersion = new File(filepath + "_old");
+				File tempName = new File(filepath + "_temp");
+				
+				if(!latestVersion.exists() || !lastVersion.exists()){
+					LServerStub.dropLock(filepath, clientName);
+					return false;
+				}
+				else{
+					lastVersion.renameTo(tempName);
+					latestVersion.renameTo(lastVersion);
+					lastVersion.renameTo(latestVersion);
+				}
+				
+				LServerStub.dropLock(filepath, clientName);
+				return true;
+			}
+			else return false;
+			
+		}
+		catch(Exception e){
+			System.err.println("Could not write " + filepath + "to file server" + e.toString());
+			e.printStackTrace();
+			return false;
+		}
 	}
 }

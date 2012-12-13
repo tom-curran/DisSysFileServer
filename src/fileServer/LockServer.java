@@ -8,7 +8,9 @@ public class LockServer implements LServerRMI{
 	private HashMap<String,String> lockMap = new HashMap<String,String>();	//Mapping from filepath to client name
 	private HashSet<String> clientSet = new HashSet<String>();				//Set of client names
 	
-	public LockServer(){}
+	public LockServer(){
+		System.out.println("Lock Server Ready.");
+	}
 	
 	//Add new client name, if name is available
 	public boolean checkAndAddName(String clientName){
