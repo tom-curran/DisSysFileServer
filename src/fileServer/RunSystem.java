@@ -14,11 +14,19 @@ public class RunSystem {
 	private static FServerRMI FServerStub;
 	private static DServerRMI DServerStub;
 	private static LServerRMI LServerStub;
+	private static RServerRMI RServerStub;
 	
 	
 	public static void setup() throws RemoteException{
 		//Get handle on RMI registry
 		registry = LocateRegistry.getRegistry();
+		
+		//Initialise Replication Server
+		ReplicationServer RServerObj = new ReplicationServer();
+		RServerStub = (RServerRMI) UnicastRemoteObject.exportObject(RServerObj, 0);
+		//Bind to RMI registry			
+		registry.rebind("ReplicationServer", RServerStub);
+		System.out.println("Replication Server ready");
 		
 		//Initialise File Server
 		FileServer FServerObj = new FileServer();
@@ -39,7 +47,10 @@ public class RunSystem {
 		LServerStub = (LServerRMI) UnicastRemoteObject.exportObject(LServerObj, 0);
 		//Bind to RMI registry			
 		registry.rebind("LockServer", LServerStub);
-		System.out.println("Lock Server ready");
+		System.out.println("Lock Server ready");		
+		
+		//Initialise Backup Server
+		new BackupServer("C:/Users/Tom/Desktop/Servers/Backups/BServ1/", "BServ1");
 	}
 	
 	public static void setdown() throws Exception{
@@ -66,12 +77,9 @@ public class RunSystem {
 			e.printStackTrace();
 		}		
 		
-		
 		//Run test client
-		Client client = new Client("C:/Users/Tom/Downloads/Testing/javaTest_CLIENT_COPIES");		
-		//client.runTestClient();
-		client.mainMenu();
-		
+		Client client = new Client("C:/Users/Tom/Desktop/Servers/Client");		
+		client.mainMenu();		
 		
 		try{
 			//Unbind servers from RMI registry

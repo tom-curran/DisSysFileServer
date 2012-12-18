@@ -1,7 +1,11 @@
 package fileServer;
 
+import java.rmi.registry.LocateRegistry;
+import java.rmi.registry.Registry;
+import java.rmi.server.UnicastRemoteObject;
 import java.util.HashMap;
 import java.util.HashSet;
+
 
 public class LockServer implements LServerRMI{
 	
@@ -68,6 +72,22 @@ public class LockServer implements LServerRMI{
 		String lockHolder = lockMap.get(filepath);		
 		if(clientName.equals(lockHolder)) return true;
 		else return false;
+	}
+	
+	public static void main(String args[]){
+		//Set code base so RMI can see the classes (classpath)
+		System.setProperty("java.rmi.server.codebase", DServerRMI.class.getProtectionDomain().getCodeSource().getLocation().toString());
+		try {
+			Registry registry = LocateRegistry.getRegistry();
+			
+			//Initialise Lock Server
+			LockServer LServerObj = new LockServer();
+			LServerRMI LServerStub = (LServerRMI) UnicastRemoteObject.exportObject(LServerObj, 0);
+			//Bind to RMI registry			
+		
+			registry.rebind("LockServer", LServerStub);
+		} catch (Exception e) {
+		}
 	}
 
 }

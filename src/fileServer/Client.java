@@ -1,15 +1,21 @@
 package fileServer;
 
 //import java.rmi.RMISecurityManager;
+import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.nio.charset.Charset;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.Scanner;
 
 public class Client {
@@ -25,13 +31,14 @@ public class Client {
 	private Registry registry;
 	//Server stubs
 	private FServerRMI FServerStub;
-    private static DServerRMI DServerStub;
+    private DServerRMI DServerStub;
     private LServerRMI LServerStub;
+    
+    private Cache myCache = new Cache();
     
     //Constructor(s)
 	public Client(){}
-	public Client(String workspace){workingDir = workspace;}		//To be removed
-	
+	public Client(String workspace){workingDir = workspace;}
 	
 	public void setup(){		
 		try{
@@ -72,7 +79,14 @@ public class Client {
 		}
 	}
 	public static void main(String args[]){
-		//mainMenu();
+		
+		//Set code base so RMI can see the classes (classpath)
+		System.setProperty("java.rmi.server.codebase", DServerRMI.class.getProtectionDomain().getCodeSource().getLocation().toString());
+		
+		//Run test client
+		Client client = new Client("C:/Users/Tom/Desktop/Servers/Client");		
+		//client.runTestClient();
+		client.mainMenu();	
 	}
 	//Main menu for interface
 	public void mainMenu(){
@@ -127,16 +141,13 @@ public class Client {
 				String cd = scanner.next();
 				try{
 					if(cd.equals("..")){
-						System.out.println(currentDir);
 						String crumbs[] = currentDir.split("/");
 						if(crumbs.length == 0 && crumbs[0].equals("")) System.out.println("Already at root");
 						else{
 							currentDir = crumbs[0];
 							for(int i=1; i < crumbs.length-1; i++){
 								currentDir += ("/" + crumbs[i]);
-								System.out.println(crumbs[i]);
 							}
-							System.out.println(currentDir);
 						}
 					}
 					else{
@@ -189,22 +200,134 @@ public class Client {
 				break;
 			case 5:
 				//Read/Edit File
-				System.out.println("CAN'T DO THAT YET!");
 				System.out.print("File to edit: ");
 				String gedit = scanner.next();
-				//CHECK CACHE
-				try{
-					String serverFilepath = DServerStub.getFilePath(currentDir, gedit);
-					if(serverFilepath == null) System.out.println("File not available");
-					else{
-						//Copy file to local directory
-						byte copiedFile[] = FServerStub.retrieveFile(serverFilepath);
-						Utils.getUtils().deSerialiseFile(copiedFile, (workingDir + "/cache/" + gedit));	//Copied to cache, must write again when editing is finished
+				
+				//Check cache
+				File cachedFile = new File(workingDir + "/cache/" + gedit);
+				if(cachedFile.exists() && myCache.checkValidInCache(cachedFile)){
+					//Can read from cache, need to lock
+					System.out.println("Reading from cache");
+					try{
+						String serverFilepath = DServerStub.getFilePath(currentDir, gedit);
+						if(serverFilepath == null) System.out.println("File not available");
+						else{
+							//Get lock on file
+							if(!LServerStub.getLock(serverFilepath, clientName)){
+								System.out.println("File not available");
+							}
+							else{
+								//EDIT FILE
+								ArrayList<String> lines = new ArrayList<String>();
+								FileInputStream fis = new FileInputStream(workingDir + "/cache/" + gedit);
+								BufferedReader br = new BufferedReader(new InputStreamReader(fis, Charset.forName("UTF-8")));
+								String line;
+								while((line = br.readLine()) != null){
+									System.out.println(line);
+									System.out.print("1-Keep Line, 2-Edit Line, 3-Delete Line");
+									int chk=0;
+									while(chk != 1 && chk != 2 && chk != 3) chk = scanner.nextInt();
+									switch(chk){
+									case 1:
+										lines.add(line);
+										break;
+									case 2:
+										System.out.print("Type new line: ");
+										String newL = scanner.next();
+										lines.add(newL);
+										break;
+									case 3:
+										break;
+									}
+								}
+								br.close();
+								fis.close();
+								
+								File tempFile = new File(workingDir + "/cache/" + gedit); 
+								FileWriter fstream = new FileWriter(tempFile);
+								BufferedWriter out = new BufferedWriter(fstream);
+								
+								for(int i=0; i<lines.size(); i++){
+									//Write line to file
+									out.write(lines.get(i) + "\n");
+								}
+								out.close();
+								fstream.close();
+								
+								//WRITE TO FILE SERVER
+								FServerStub.overwriteFile(Utils.getUtils().serialiseFile(workingDir + "/cache/" + gedit), serverFilepath, clientName);
+								
+								//Update cache and last edit time on Directory server
+								Date now = new Date();
+								DServerStub.updateTimestamp(gedit, now);
+								myCache.addToCache(new File(workingDir + "/cache/" + gedit), now);
+							}
+						}
+					}catch(Exception e){
+						System.err.println("Could not contact servers");
 					}
+					
 				}
-				catch(Exception e){
-					System.err.println("Exception copying file " + e.toString());
-			    	e.printStackTrace();
+				else{
+					System.out.println("Retrieving from server");
+					try{
+						String serverFilepath = DServerStub.getFilePath(currentDir, gedit);
+						if(serverFilepath == null) System.out.println("File not available");
+						else{
+							//Get lock on file
+							if(!LServerStub.getLock(serverFilepath, clientName)){
+								System.out.println("File not available");
+							}
+							else{
+								//Copy file to local directory
+								byte copiedFile[] = FServerStub.retrieveFile(serverFilepath);
+								Utils.getUtils().deSerialiseFile(copiedFile, (workingDir + "/cache/" + gedit));	//Copied to cache, must write again when editing is finished								
+								
+								//EDIT FILE
+								ArrayList<String> lines = new ArrayList<String>();
+								FileInputStream fis = new FileInputStream(workingDir + "/cache/" + gedit);
+								BufferedReader br = new BufferedReader(new InputStreamReader(fis, Charset.forName("UTF-8")));
+								String line = "";
+								while((line = br.readLine()) != null){
+									System.out.println(line);
+									System.out.print("1-Keep Line, 2-Edit Line, 3-Delete Line");
+									String chk="";
+									while(!chk.equals("1") && !chk.equals("2") && !chk.equals("3")) chk = scanner.next();
+									if(chk.equals("1")) lines.add(line);
+									else if(chk.equals("2")){
+										System.out.print("Type new line: ");
+										String newL = scanner.next();
+										lines.add(newL);
+									}
+								}
+								br.close();
+								fis.close();
+								
+								File tempFile = new File(workingDir + "/cache/" + gedit); 
+								FileWriter fstream = new FileWriter(tempFile);
+								BufferedWriter out = new BufferedWriter(fstream);
+								
+								for(int i=0; i<lines.size(); i++){
+									//Write line to file
+									out.write(lines.get(i) + "\n");
+								}
+								out.close();
+								fstream.close();						
+								
+								//WRITE TO FILE SERVER
+								FServerStub.overwriteFile(Utils.getUtils().serialiseFile(workingDir + "/cache/" + gedit), serverFilepath, clientName);
+								
+								//Update cache and last edit time on Directory server
+								Date now = new Date();
+								DServerStub.updateTimestamp(gedit, now);
+								myCache.addToCache(new File(workingDir + "/cache/" + gedit), now);
+							}
+						}
+					}
+					catch(Exception e){
+						System.err.println("Exception editing file " + e.toString());
+				    	e.printStackTrace();
+					}
 				}
 				break;
 			case 6:
@@ -232,17 +355,28 @@ public class Client {
 					}
 					out.close();
 					
-					System.out.print("Enter name to save file as: ");
-					String filename = scanner.next();
-					File finalFile = new File(workingDir + "/cache/" + filename + ".txt");
+					String filename;
+					
+					do{
+						System.out.print("Enter name to save file as: ");
+						filename = scanner.next();
+						filename += ".txt";
+						//Check file doesn't already exist on file server
+					}while(DServerStub.getFilePath(currentDir, filename) != null);
+						
+					File finalFile = new File(workingDir + "/cache/" + filename);
 					
 					if(!tempFile.renameTo(finalFile)){
-						System.err.println("Error renaming! WAT!?");
+						System.err.println("Error renaming!");
 					}
 					else tempFile.delete();
-					//Check file doesn't already exist on file server
-					//Get lock on file
-					//createNewFile() on file server
+					
+					byte serFile[] = Utils.getUtils().serialiseFile(workingDir + "/cache/" + filename);
+					FServerStub.writeNewFile(serFile, filename, currentDir);
+					
+					Date now = new Date();
+					DServerStub.updateTimestamp(filename, now);
+					myCache.addToCache(new File(workingDir + "/cache/" + filename), now);
 					
 					out.close();
 				} catch(IOException e){
@@ -271,76 +405,13 @@ public class Client {
 			case 8:
 				//Exit
 				System.out.println("\nExiting...");
+				try{
+					LServerStub.removeName(clientName);
+				}catch(Exception e){					
+				}
 				exit = true;
 				break;
 			}			
-		}
-	}
-	
-	public void runTestClient(){		
-		try{
-			setup();
-			
-		    //Getting list of files from directory server
-		    String[] fileList = DServerStub.getFileFolderList(currentDir);
-		    //Print file list
-		    //System.out.println("\nFiles Available:");
-		    
-		    if(fileList == null){
-		    	System.out.println("NONE");
-		    }
-		    else{
-		    	if(DServerStub.renameFile("", "thisText.txt", "TESTCHANGE.txt")){
-		    		
-		    		System.out.println("DONE!");		    	
-		    	
-			    	fileList = DServerStub.getFileFolderList(currentDir);
-			    	
-			    	for(int i=0; i<fileList.length; i++){
-			        	System.out.println(fileList[i]);
-			    	}
-		    	}
-//		    
-//			    //User chooses file
-//			    System.out.print("\nChoose File: ");
-//			    String fileChosen = scanner.next();
-//			    
-//			    //If choice is in the list given, retrieve file and write to workingDir/CLIENTCOPY_filename"
-//			    if(Arrays.asList(fileList).contains(fileChosen)){		    	
-//			    	//Get full file server filepath of file needed from directory server
-//			    	String filepath = DServerStub.getFilePath(currentDir, fileChosen);
-//			    	
-//			    	//Retrieve file from file server:
-//			    	byte[] fileBytes = FServerStub.retrieveFile(filepath);
-//			    	
-//			    	LServerStub.getLock(filepath, clientName);
-//			    	
-//			    	if(FServerStub.overwriteFile(fileBytes, filepath, clientName)){
-//			    		System.out.println("File " + fileChosen + " overwritten!");
-//			    	}
-//			    	else{
-//			    		System.out.println("Overwrite failed!");
-//			    	}
-//			    	
-//			    	//Deserialise byte[] into file on client
-//			    	String localPath = (workingDir + "/CLIENTCOPY_" + fileChosen);
-//			    	Utils.getUtils().deSerialiseFile(fileBytes, localPath);
-//				    
-//				    
-//			    }
-//			    else{
-//			    	System.out.println("File specified is not available.");
-//			    }
-		    }
-		    //Test new file writing to server:
-//		    byte sendFile[] = Utils.getUtils().serialiseFile(workingDir + "/Silhouette.mp3");
-//		    FServerStub.writeNewFile(sendFile, "silTest.mp3");
-		    
-		    closeConnection();		    	    
-		    
-		} catch(Exception e){
-			System.err.println("Client exception: " + e.toString());
-		    e.printStackTrace();
 		}
 	}
 }

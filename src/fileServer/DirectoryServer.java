@@ -2,14 +2,19 @@ package fileServer;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
+import java.util.concurrent.atomic.AtomicReference;
 
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
+import java.rmi.server.UnicastRemoteObject;
 
 public class DirectoryServer implements DServerRMI{
 	
 	private FileFolderMapPair fileFolderStruct = new FileFolderMapPair();
+	
+	private HashMap<String, Date> editTimes = new HashMap<String, Date>();
 	
 	//Initialising directory structure:
 	public DirectoryServer(){
@@ -48,6 +53,7 @@ public class DirectoryServer implements DServerRMI{
 				if(temp == null) return null;
 				temp = temp.folders.get(crumbs[i]);
 			}
+			if(temp.files == null) temp.files = new HashMap<String, String>();
 			return temp.files;
 		}
 	}
@@ -67,7 +73,28 @@ public class DirectoryServer implements DServerRMI{
 				if(temp == null) return null;
 				temp = temp.folders.get(crumbs[i]);
 			}
+			if(temp.folders == null) temp.folders = new HashMap<String, FileFolderMapPair>();
 			return temp.folders;
+		}
+	}
+	
+	private AtomicReference<HashMap<String, FileFolderMapPair>> getFolderRef(String breadcrumbs){
+		String crumbs[] = breadcrumbs.split("/");
+		if(crumbs.length == 1 && crumbs[0].equals("")) crumbs = new String[0];
+		
+		if(crumbs.length == 0){
+			return new AtomicReference<HashMap<String, FileFolderMapPair>>(fileFolderStruct.folders);
+		}
+		else{
+			System.err.println("HERE");
+			AtomicReference<FileFolderMapPair> temp = new AtomicReference<FileFolderMapPair>(fileFolderStruct.folders.get(crumbs[0]));
+			System.err.println("GOT HERE");
+			for(int i=1; i<crumbs.length; i++){
+				if(temp.get() == null) return null;
+				temp = new AtomicReference<FileFolderMapPair>(temp.get().folders.get(crumbs[i]));
+			}
+			if(temp.get().folders == null) temp.get().folders = new HashMap<String, FileFolderMapPair>();
+			return new AtomicReference<HashMap<String, FileFolderMapPair>>(temp.get().folders);
 		}
 	}
 	
@@ -115,13 +142,64 @@ public class DirectoryServer implements DServerRMI{
 	}
 	
 	public boolean createFolder(String breadcrumbs, String newFolderName){
-		HashMap<String, FileFolderMapPair> folderDir = getFolderDir(breadcrumbs);
-		if(folderDir == null) return false;
+//		HashMap<String, FileFolderMapPair> folderDir = getFolderDir(breadcrumbs);
+//		if(folderDir == null) return false;
+//		
+//		if(folderDir.containsKey(newFolderName)) return false;	//Cannot rename to existing folder name
+//		else{
+//			folderDir.put(newFolderName, new FileFolderMapPair());
+//			return true;
+//		}
+		
+		AtomicReference<HashMap<String, FileFolderMapPair>> folderRef = getFolderRef(breadcrumbs);
+		if(folderRef.get() == null) return false;
+		HashMap<String, FileFolderMapPair> folderDir = folderRef.get();
+		//if(folderRef.get() == null) return false;
 		
 		if(folderDir.containsKey(newFolderName)) return false;	//Cannot rename to existing folder name
 		else{
 			folderDir.put(newFolderName, new FileFolderMapPair());
+			folderRef.set(folderDir);
 			return true;
-		}		
+		}
+		
+	}
+	
+	public boolean addNewFile(String breadcrumbs, String filename, String filepath){
+		HashMap<String, String> fileDir = getFileDir(breadcrumbs);
+		if(fileDir == null) fileDir = new HashMap<String, String>();
+		
+		if(fileDir.containsKey(filename)) return false;
+		else{			
+			fileDir.put(filename, filepath);
+			return true;
+		}
+	}
+	
+	public boolean checkTimestamp(String filename, Date time){
+		if(editTimes.containsKey(filename) && editTimes.get(filename) != null && editTimes.get(filename).equals(time)) return true;
+		
+		else return false;
+	}
+	public void updateTimestamp(String filename, Date time){
+		if(editTimes.containsKey(filename)) editTimes.remove(filename);
+		editTimes.put(filename, time);
+	}
+	
+	public static void main(String args[]){
+		//Set code base so RMI can see the classes (classpath)
+		System.setProperty("java.rmi.server.codebase", DServerRMI.class.getProtectionDomain().getCodeSource().getLocation().toString());
+		
+		try {
+			Registry registry = LocateRegistry.getRegistry();
+			
+			//Initialise Lock Server
+			DirectoryServer DServerObj = new DirectoryServer();
+			DServerRMI DServerStub = (DServerRMI) UnicastRemoteObject.exportObject(DServerObj, 0);
+			//Bind to RMI registry			
+		
+			registry.rebind("DirectoryServer", DServerStub);
+		} catch (Exception e) {
+		}
 	}
 }
