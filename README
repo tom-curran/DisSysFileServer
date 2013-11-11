@@ -4,10 +4,6 @@ Built in Java with RMI
 System:
 -File Server(s)
 -Directory Server
+-Replication/Backup Server(s)
 -Lock Server
 -Client
-
-To do:
--Authentication Server
--Caching
--Transactions
